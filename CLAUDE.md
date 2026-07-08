@@ -78,22 +78,19 @@ ESPflasher/
 General (BitsyMiner / SparkMiner / Other):
 | Pool URL | Port | Notes |
 |---|---|---|
-| hmpool.io | 3337 | Confirmed working with BitsyMiner |
-| btc.hmpool.io | 3337 | HMPool Bitcoin-specific subdomain |
-| xec.hmpool.io | 3337 | HMPool eCash (XEC) pool — requires eCash wallet address, not BTC |
-| public-pool.io | 21496 | Open-source, widely compatible |
-| pool.pyblock.xyz | 3333 | PyBlock community pool |
-| pool.sethforprivacy.com | 3333 | Seth for Privacy — confirmed working with BitsyMiner, SparkMiner, NerdMiner v2 |
-| pool.stompi.de | 3333 | Stompi community pool |
-| pool.nerdminer.io | 3333 | NerdMiner community pool |
-| pool.solomining.de | 3333 | Solo Mining DE — confirmed working with BitsyMiner, SparkMiner, NerdMiner v2 |
+| hmpool.io | 3337 | Confirmed working with BitsyMiner, SparkMiner, NerdMiner v2 |
+| btc.hmpool.io | 3337 | HMPool BTC subdomain — confirmed working with BitsyMiner, SparkMiner, NerdMiner v2 |
+| xec.hmpool.io | 3337 | HMPool eCash (XEC) — requires eCash wallet — confirmed working with BitsyMiner, SparkMiner, NerdMiner v2 |
+| public-pool.io | 21496 | Confirmed working with BitsyMiner, SparkMiner — does NOT work with NerdMiner v2 |
+| pool.sethforprivacy.com | 3333 | Confirmed working with BitsyMiner, SparkMiner, NerdMiner v2 |
+| pool.nerdminer.io | 3333 | Confirmed working with BitsyMiner, SparkMiner, NerdMiner v2 |
+| pool.solomining.de | 3333 | Confirmed working with BitsyMiner, SparkMiner, NerdMiner v2 |
 
 NerdMiner v2 only (pool.nerdminers.org blocks non-NerdMiner user agents):
 | Pool URL | Port |
 |---|---|
 | pool.nerdminers.org | 3333 |
 | pool.nerdminer.io | 3333 |
-| public-pool.io | 21496 |
 
 **Excluded pools and reasons:**
 - `ocean.xyz` — ASIC-targeted; sets difficulty 65k+ which an ESP32 (25–40 kH/s) will never satisfy
@@ -103,6 +100,7 @@ NerdMiner v2 only (pool.nerdminers.org blocks non-NerdMiner user agents):
 - `pool.nerdminers.org` (general list) — rejects non-NerdMiner Stratum user agents
 - `lotterypool.io` — no DNS record found; confirmed non-functional as of 2026-07
 - `pool.stompi.de` — stratum connection refused; confirmed non-functional as of 2026-07
+- `pool.pyblock.xyz` — stratum connection refused; confirmed non-functional as of 2026-07
 - `pool.pyblock.xyz` — stratum connection refused; confirmed non-functional as of 2026-07
 
 **Erase flash before writing** checkbox

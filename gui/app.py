@@ -74,7 +74,6 @@ KNOWN_POOLS: dict[str, int] = {
 NERDMINER_POOLS: dict[str, int] = {
     "pool.nerdminers.org": 3333,
     "pool.nerdminer.io":   3333,
-    "public-pool.io":      21496,
 }
 
 # Combined lookup used by _on_pool_selected
@@ -176,6 +175,9 @@ EXCLUDED_POOLS: dict[str, str] = {
     "btcplebpool.com":        "DNS does not resolve — appears defunct",
     "stratum.braiins.com":    "Braiins Pool is ASIC-targeted — difficulty too high for ESP32",
     "stratum.slushpool.com":  "Braiins/Slush Pool is ASIC-targeted — difficulty too high for ESP32",
+    "lotterypool.io":         "No DNS record — confirmed non-functional",
+    "pool.stompi.de":         "Stratum connection refused — confirmed non-functional",
+    "pool.pyblock.xyz":       "Stratum connection refused — confirmed non-functional",
 }
 
 _MUTED  = ("gray50", "gray55")
@@ -555,7 +557,7 @@ class ESPFlasherApp(ctk.CTk, TkinterDnD.DnDWrapper):
         # Pool URL — combobox: known pools first, then history
         pool_url_values = list(KNOWN_POOLS.keys()) + [
             h for h in _hist.get_list(self._history, "pool_url")
-            if h not in KNOWN_POOLS
+            if h not in KNOWN_POOLS and h not in EXCLUDED_POOLS
         ]
         ctk.CTkLabel(pool, text="Pool URL:", width=100, anchor="w").grid(
             row=3, column=0, padx=(20, 8), pady=4, sticky="w")
@@ -1561,7 +1563,7 @@ class ESPFlasherApp(ctk.CTk, TkinterDnD.DnDWrapper):
         # Update pool dropdown to show family-appropriate pools
         if hasattr(self, "_pool_combo"):
             base = NERDMINER_POOLS if fam == "NerdMiner v2" else KNOWN_POOLS
-            hist = [h for h in _hist.get_list(self._history, "pool_url") if h not in base]
+            hist = [h for h in _hist.get_list(self._history, "pool_url") if h not in base and h not in EXCLUDED_POOLS]
             self._pool_combo.configure(values=list(base.keys()) + hist)
         self._update_pool_warning()
 
