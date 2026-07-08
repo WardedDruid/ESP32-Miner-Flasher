@@ -82,12 +82,11 @@ General (BitsyMiner / SparkMiner / Other):
 | btc.hmpool.io | 3337 | HMPool Bitcoin-specific subdomain |
 | xec.hmpool.io | 3337 | HMPool eCash (XEC) pool — requires eCash wallet address, not BTC |
 | public-pool.io | 21496 | Open-source, widely compatible |
-| lotterypool.io | 3333 | Lottery-style small-miner pool |
 | pool.pyblock.xyz | 3333 | PyBlock community pool |
-| pool.sethforprivacy.com | 3333 | Seth for Privacy public pool |
+| pool.sethforprivacy.com | 3333 | Seth for Privacy — confirmed working with BitsyMiner, SparkMiner, NerdMiner v2 |
 | pool.stompi.de | 3333 | Stompi community pool |
 | pool.nerdminer.io | 3333 | NerdMiner community pool |
-| pool.solomining.de | 3333 | Solo Mining DE — small-miner solo pool |
+| pool.solomining.de | 3333 | Solo Mining DE — confirmed working with BitsyMiner, SparkMiner, NerdMiner v2 |
 
 NerdMiner v2 only (pool.nerdminers.org blocks non-NerdMiner user agents):
 | Pool URL | Port |
@@ -102,6 +101,9 @@ NerdMiner v2 only (pool.nerdminers.org blocks non-NerdMiner user agents):
 - `btcplebpool.com` — DNS does not resolve; appears defunct as of mid-2025
 - `stratum.braiins.com` / `stratum.slushpool.com` — Braiins Pool is ASIC-targeted
 - `pool.nerdminers.org` (general list) — rejects non-NerdMiner Stratum user agents
+- `lotterypool.io` — no DNS record found; confirmed non-functional as of 2026-07
+- `pool.stompi.de` — stratum connection refused; confirmed non-functional as of 2026-07
+- `pool.pyblock.xyz` — stratum connection refused; confirmed non-functional as of 2026-07
 
 **Erase flash before writing** checkbox
 

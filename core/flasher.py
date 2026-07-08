@@ -6,6 +6,13 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, Optional
 
 
+def _esptool_cmd(args: list) -> list:
+    """Build an esptool subprocess command that works both frozen and unfrozen."""
+    if getattr(sys, "frozen", False):
+        return [sys.executable, "--run-esptool"] + args
+    return [sys.executable, "-m", "esptool"] + args
+
+
 @dataclass
 class FlashTask:
     chip: str = "esp32"
@@ -67,12 +74,11 @@ class Flasher:
             done_cb(False, str(exc))
 
     def _base(self, task):
-        return [
-            sys.executable, "-m", "esptool",
+        return _esptool_cmd([
             "--chip", task.chip,
             "--port", task.port,
             "--baud", str(task.baud),
-        ]
+        ])
 
     def _write_args(self, task):
         args = [

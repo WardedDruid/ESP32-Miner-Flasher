@@ -65,8 +65,15 @@ def probe_chip(
     ).start()
 
 
+def _esptool_cmd(args: list) -> list:
+    """Build an esptool subprocess command that works both frozen and unfrozen."""
+    if getattr(sys, "frozen", False):
+        return [sys.executable, "--run-esptool"] + args
+    return [sys.executable, "-m", "esptool"] + args
+
+
 def _run_probe(port, result_cb, log_cb):
-    cmd = [sys.executable, "-m", "esptool", "--port", port, "flash_id"]
+    cmd = _esptool_cmd(["--port", port, "flash_id"])
     kwargs: dict = {"stdout": subprocess.PIPE, "stderr": subprocess.STDOUT, "text": True}
     if sys.platform == "win32":
         kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
