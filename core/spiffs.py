@@ -141,10 +141,13 @@ def _find_mklittlefs() -> str:
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def write_spiffs_temp_file(
-    pool_url:  str,
-    pool_port: int,
-    wallet:    str,
-    pool_pass: str = "x",
+    pool_url:     str,
+    pool_port:    int,
+    wallet:       str,
+    pool_pass:    str  = "x",
+    gmt_zone:     int  = 0,
+    brightness:   int  = 250,
+    invert_colors:bool = False,
 ) -> str:
     """
     Generate the NerdMiner /config.json filesystem image and return the path.
@@ -152,13 +155,19 @@ def write_spiffs_temp_file(
     Arduino ESP32 3.x uses LittleFS internally even when the code says SPIFFS,
     so we use mklittlefs.exe when available.  Falls back to the pure-Python
     SPIFFS generator for Arduino ESP32 2.x installs.
+
+    gmt_zone:     UTC offset in whole hours (e.g. -5 for EST)
+    brightness:   display brightness 0-250 (NerdMiner default: 250)
+    invert_colors: passed as "invertColors" in config.json (default false)
     """
     config = {
         "poolString":   pool_url,
         "portNumber":   pool_port,
         "poolPassword": pool_pass,
         "btcString":    wallet,
-        "gmtZone":      0,
+        "gmtZone":      gmt_zone,
+        "Brightness":   min(brightness, 250),
+        "invertColors": invert_colors,
     }
     json_str = json.dumps(config, separators=(",", ":"))
 

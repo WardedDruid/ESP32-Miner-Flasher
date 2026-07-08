@@ -24,14 +24,13 @@ Struct layout (GCC Xtensa, double is 8-byte aligned):
   [482] char backupWallet[121]
   [603] char backupPoolPassword[65]
   [668] uint8_t brightness
-  [669] 1-byte pad
-  [670] uint16_t screenTimeout
-  [672] uint8_t rotation
-  [673] bool displayEnabled
-  [674] bool invertColors
-  [675] int8_t timezoneOffset
-  [676] char workerName[32]
-  [708] 4-byte pad (double requires 8-byte alignment; 708%8=4 → pad to 712)
+  [669] uint8_t screenTimeout  ← v2.9.5: changed from uint16_t to uint8_t (0-255 seconds)
+  [670] uint8_t rotation
+  [671] bool displayEnabled
+  [672] bool invertColors
+  [673] int8_t timezoneOffset
+  [674] char workerName[32]
+  [706] 6-byte pad (double requires 8-byte alignment; 706%8=2 → pad to 712)
   [712] double targetDifficulty
   [720] bool statsEnabled
   [721] char statsApiUrl[128]
@@ -39,7 +38,7 @@ Struct layout (GCC Xtensa, double is 8-byte aligned):
   [977] bool enableHttpsStats
   [978] 2-byte pad (uint32 alignment)
   [980] uint32_t checksum
-  Total: 984 bytes  ← confirmed by firmware log "[NVS] Loading config (struct size: 984 bytes)"
+  Total: 984 bytes
 """
 
 import os
@@ -87,7 +86,7 @@ def build_config_struct(
     screen_timeout:  int  = 0,
     rotation:        int  = 0,
     display_enabled: bool = True,
-    invert_colors:   bool = False,
+    invert_colors:   bool = False,  # False → invertDisplay(true) = INVON = dark mode on CYD
     timezone_offset: int  = 0,
     worker_name:     str  = "",
     target_diff:     float= 0.0,
@@ -107,14 +106,13 @@ def build_config_struct(
     _put_str(buf, 482, backup_wallet,   121)
     _put_str(buf, 603, backup_pool_pass,65)
     buf[668] = brightness & 0xFF
-    # 1-byte pad at 669 — already zero
-    struct.pack_into("<H", buf, 670, screen_timeout & 0xFFFF)
-    buf[672] = rotation & 0xFF
-    buf[673] = 1 if display_enabled  else 0
-    buf[674] = 1 if invert_colors    else 0
-    struct.pack_into("<b", buf, 675, max(-128, min(127, timezone_offset)))
-    _put_str(buf, 676, worker_name, 32)
-    # 4-byte pad at 708-711 (already zero) — aligns double to 8-byte boundary at 712
+    buf[669] = min(max(screen_timeout, 0), 0xFF)  # uint8_t in v2.9.5, max 255 seconds
+    buf[670] = rotation & 0xFF
+    buf[671] = 1 if display_enabled else 0
+    buf[672] = 1 if invert_colors   else 0
+    struct.pack_into("<b", buf, 673, max(-128, min(127, timezone_offset)))
+    _put_str(buf, 674, worker_name, 32)
+    # 6-byte pad at 706-711 (already zero) — aligns double to 8-byte boundary at 712
     struct.pack_into("<d", buf, 712, target_diff)
     # buf[720] statsEnabled = 0 (false)
     # buf[721..] statsApiUrl, statsProxyUrl = "" (already zero)
@@ -128,18 +126,30 @@ def build_config_struct(
 # ── NVS partition generator ───────────────────────────────────────────────────
 
 def generate_nvs_partition(
-    ssid:      str,
-    wifi_pass: str,
-    pool_url:  str,
-    pool_port: int,
-    wallet:    str,
-    pool_pass: str = "x",
+    ssid:             str,
+    wifi_pass:        str,
+    pool_url:         str,
+    pool_port:        int,
+    wallet:           str,
+    pool_pass:        str = "x",
+    brightness:       int = 128,
+    screen_timeout_s: int = 0,
+    timezone_hours:   int = 0,
 ) -> bytes:
-    """Return PART_SIZE bytes ready to flash at PART_OFFSET (0x9000)."""
+    """Return PART_SIZE bytes ready to flash at PART_OFFSET (0x9000).
+
+    Display params:
+      brightness:       active display brightness 0-255 (default 128)
+      screen_timeout_s: seconds before screen off, 0 = never (default 0)
+      timezone_hours:   UTC offset in whole hours, e.g. -5 for EST (default 0)
+    """
     blob = build_config_struct(
         ssid=ssid, wifi_pass=wifi_pass,
         pool_url=pool_url, pool_port=pool_port,
         wallet=wallet, pool_pass=pool_pass,
+        brightness=brightness,
+        screen_timeout=screen_timeout_s,
+        timezone_offset=timezone_hours,
     )
     page = _NVSPage(page_num=0)
     page.write_namespace(NAMESPACE, 1)
@@ -148,15 +158,23 @@ def generate_nvs_partition(
 
 
 def write_nvs_temp_file(
-    ssid:      str,
-    wifi_pass: str,
-    pool_url:  str,
-    pool_port: int,
-    wallet:    str,
-    pool_pass: str = "x",
+    ssid:             str,
+    wifi_pass:        str,
+    pool_url:         str,
+    pool_port:        int,
+    wallet:           str,
+    pool_pass:        str = "x",
+    brightness:       int = 128,
+    screen_timeout_s: int = 0,
+    timezone_hours:   int = 0,
 ) -> str:
     """Write NVS partition binary to a temp file. Returns path."""
-    data = generate_nvs_partition(ssid, wifi_pass, pool_url, pool_port, wallet, pool_pass)
+    data = generate_nvs_partition(
+        ssid, wifi_pass, pool_url, pool_port, wallet, pool_pass,
+        brightness=brightness,
+        screen_timeout_s=screen_timeout_s,
+        timezone_hours=timezone_hours,
+    )
     fd, path = tempfile.mkstemp(suffix="_nvs.bin", prefix="spark_")
     try:
         with os.fdopen(fd, "wb") as f:

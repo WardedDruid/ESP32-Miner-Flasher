@@ -55,9 +55,14 @@ _CHIP_BOARD_MAP = {
 # General pools — compatible with BitsyMiner, SparkMiner, and standard Stratum v1 clients.
 # ocean.xyz, solo.ckpool.org, braiins set difficulty too high for ESP32-class miners.
 # btcplebpool.com DNS does not resolve (defunct as of mid-2025).
+XEC_POOLS: set[str] = {
+    "xec.hmpool.io",
+}
+
 KNOWN_POOLS: dict[str, int] = {
     "hmpool.io":                  3337,
     "btc.hmpool.io":              3337,
+    "xec.hmpool.io":              3337,
     "public-pool.io":             21496,
     "pool.sethforprivacy.com":    3333,
     "pool.nerdminer.io":          3333,
@@ -74,6 +79,97 @@ NERDMINER_POOLS: dict[str, int] = {
 
 # Combined lookup used by _on_pool_selected
 _ALL_POOLS: dict[str, int] = {**KNOWN_POOLS, **NERDMINER_POOLS}
+
+# ── Display & Clock dropdown options ─────────────────────────────────────────
+
+_BRIGHTNESS_OPTIONS = ["Full (100%)", "High (75%)", "Medium (50%)", "Low (25%)", "Minimum (10%)"]
+_BRIGHTNESS_VALUES  = {"Full (100%)": 255, "High (75%)": 192, "Medium (50%)": 128,
+                        "Low (25%)": 64, "Minimum (10%)": 25}
+# SparkMiner uses 0-100 % brightness scale (firmware clamps anything > 100 to 100)
+_SPARK_BRIGHTNESS_VALUES = {"Full (100%)": 100, "High (75%)": 75, "Medium (50%)": 50,
+                             "Low (25%)": 25, "Minimum (10%)": 10}
+
+_DIM_TIMER_OPTIONS = ["Never", "30 seconds", "1 minute", "5 minutes", "30 minutes"]
+_DIM_TIMER_MS      = {"Never": None, "30 seconds": 30_000, "1 minute": 60_000,
+                       "5 minutes": 300_000, "30 minutes": 1_800_000}
+
+_DIM_TO_OPTIONS = ["Screen off", "Very dim (10%)", "Dim (25%)", "Medium (50%)"]
+_DIM_TO_VALUES  = {"Screen off": 0, "Very dim (10%)": 25, "Dim (25%)": 64, "Medium (50%)": 128}
+
+_TIMEZONE_OPTIONS: list[str] = [
+    "UTC-12:00 (IDLW)",
+    "UTC-11:00 (SST)",
+    "UTC-10:00 (HST — Hawaii)",
+    "UTC-9:00  (AKST — Alaska)",
+    "UTC-8:00  (PST — Pacific)",
+    "UTC-7:00  (MST / PDT — Mountain)",
+    "UTC-6:00  (CST / MDT — Central)",
+    "UTC-5:00  (EST / CDT — Eastern)",
+    "UTC-4:00  (EDT / AST — Atlantic)",
+    "UTC-3:30  (NST — Newfoundland)",
+    "UTC-3:00  (BRT — Brazil / ART — Argentina)",
+    "UTC-2:00  (GST — South Georgia)",
+    "UTC-1:00  (CVT — Cape Verde)",
+    "UTC+0:00  (GMT / UTC)",
+    "UTC+1:00  (CET — Central Europe / WAT — W. Africa)",
+    "UTC+2:00  (EET — Eastern Europe / CAT — C. Africa)",
+    "UTC+3:00  (MSK — Moscow / EAT — E. Africa)",
+    "UTC+3:30  (IRST — Iran)",
+    "UTC+4:00  (GST — Gulf / GET — Georgia)",
+    "UTC+4:30  (AFT — Afghanistan)",
+    "UTC+5:00  (PKT — Pakistan / UZT — Uzbekistan)",
+    "UTC+5:30  (IST — India / SLT — Sri Lanka)",
+    "UTC+5:45  (NPT — Nepal)",
+    "UTC+6:00  (BST — Bangladesh / OMST — Omsk)",
+    "UTC+6:30  (MMT — Myanmar)",
+    "UTC+7:00  (ICT — Indochina / WIB — W. Indonesia)",
+    "UTC+8:00  (CST — China / AWST — W. Australia / SGT — Singapore)",
+    "UTC+9:00  (JST — Japan / KST — Korea)",
+    "UTC+9:30  (ACST — Australia Central)",
+    "UTC+10:00 (AEST — Australia Eastern / PGT — PNG)",
+    "UTC+10:30 (LHST — Lord Howe Island)",
+    "UTC+11:00 (SBT — Solomon Islands / MAGT — Magadan)",
+    "UTC+12:00 (NZST — New Zealand / FJT — Fiji)",
+    "UTC+13:00 (TOT — Tonga / NZDT — NZ Daylight)",
+    "UTC+14:00 (LINT — Line Islands)",
+]
+_TIMEZONE_SECONDS: dict[str, int] = {
+    "UTC-12:00 (IDLW)":                                    -43200,
+    "UTC-11:00 (SST)":                                     -39600,
+    "UTC-10:00 (HST — Hawaii)":                            -36000,
+    "UTC-9:00  (AKST — Alaska)":                           -32400,
+    "UTC-8:00  (PST — Pacific)":                           -28800,
+    "UTC-7:00  (MST / PDT — Mountain)":                    -25200,
+    "UTC-6:00  (CST / MDT — Central)":                     -21600,
+    "UTC-5:00  (EST / CDT — Eastern)":                     -18000,
+    "UTC-4:00  (EDT / AST — Atlantic)":                    -14400,
+    "UTC-3:30  (NST — Newfoundland)":                      -12600,
+    "UTC-3:00  (BRT — Brazil / ART — Argentina)":          -10800,
+    "UTC-2:00  (GST — South Georgia)":                      -7200,
+    "UTC-1:00  (CVT — Cape Verde)":                         -3600,
+    "UTC+0:00  (GMT / UTC)":                                    0,
+    "UTC+1:00  (CET — Central Europe / WAT — W. Africa)":   3600,
+    "UTC+2:00  (EET — Eastern Europe / CAT — C. Africa)":   7200,
+    "UTC+3:00  (MSK — Moscow / EAT — E. Africa)":          10800,
+    "UTC+3:30  (IRST — Iran)":                              12600,
+    "UTC+4:00  (GST — Gulf / GET — Georgia)":               14400,
+    "UTC+4:30  (AFT — Afghanistan)":                        16200,
+    "UTC+5:00  (PKT — Pakistan / UZT — Uzbekistan)":        18000,
+    "UTC+5:30  (IST — India / SLT — Sri Lanka)":            19800,
+    "UTC+5:45  (NPT — Nepal)":                              20700,
+    "UTC+6:00  (BST — Bangladesh / OMST — Omsk)":           21600,
+    "UTC+6:30  (MMT — Myanmar)":                            23400,
+    "UTC+7:00  (ICT — Indochina / WIB — W. Indonesia)":     25200,
+    "UTC+8:00  (CST — China / AWST — W. Australia / SGT — Singapore)": 28800,
+    "UTC+9:00  (JST — Japan / KST — Korea)":                32400,
+    "UTC+9:30  (ACST — Australia Central)":                 34200,
+    "UTC+10:00 (AEST — Australia Eastern / PGT — PNG)":     36000,
+    "UTC+10:30 (LHST — Lord Howe Island)":                  37800,
+    "UTC+11:00 (SBT — Solomon Islands / MAGT — Magadan)":   39600,
+    "UTC+12:00 (NZST — New Zealand / FJT — Fiji)":          43200,
+    "UTC+13:00 (TOT — Tonga / NZDT — NZ Daylight)":         46800,
+    "UTC+14:00 (LINT — Line Islands)":                      50400,
+}
 
 # Pools that don't work with ESP32 miners — warn if manually entered
 EXCLUDED_POOLS: dict[str, str] = {
@@ -176,6 +272,13 @@ class ESPFlasherApp(ctk.CTk, TkinterDnD.DnDWrapper):
             "wifi_ssid":  ctk.StringVar(),
             "wifi_pass":  ctk.StringVar(),
             "btc_wallet": ctk.StringVar(),
+        }
+        self._disp_vars: Dict[str, ctk.Variable] = {
+            "screen_brt":  ctk.StringVar(value="Medium (50%)"),
+            "inactiv_tmr": ctk.StringVar(value="Never"),
+            "inactiv_brt": ctk.StringVar(value="Screen off"),
+            "clock24":     ctk.BooleanVar(value=False),
+            "utc_tz":      ctk.StringVar(value="UTC+0:00  (GMT / UTC)"),
         }
         self._pool_vars: Dict[str, ctk.StringVar] = {
             "pool_url":  ctk.StringVar(value=""),
@@ -402,9 +505,9 @@ class ESPFlasherApp(ctk.CTk, TkinterDnD.DnDWrapper):
         ctk.CTkButton(cfg, text="👁", width=36, command=_toggle_pass).grid(
             row=2, column=2, padx=(0, 20), pady=6)
 
-        # Bitcoin Wallet — combobox with history
-        ctk.CTkLabel(cfg, text="Bitcoin Wallet:", width=130, anchor="w").grid(
-            row=3, column=0, padx=(20, 8), pady=6, sticky="w")
+        # Wallet — label updates to "eCash Wallet:" when an XEC pool is selected
+        self._wallet_label = ctk.CTkLabel(cfg, text="Bitcoin Wallet:", width=130, anchor="w")
+        self._wallet_label.grid(row=3, column=0, padx=(20, 8), pady=6, sticky="w")
         ctk.CTkComboBox(
             cfg, variable=self._cfg_vars["btc_wallet"],
             values=_hist.get_list(self._history, "btc_wallet") or [""],
@@ -510,9 +613,61 @@ class ESPFlasherApp(ctk.CTk, TkinterDnD.DnDWrapper):
                                   padx=20, pady=(4, 14), sticky="w")
         self._on_fw_family_change()   # set initial note text
 
+        # ── Display & Clock card (BitsyMiner only) ──
+        disp = ctk.CTkFrame(scroll, corner_radius=12)
+        disp.grid(row=3, column=0, padx=30, pady=(0, 8), sticky="ew")
+        disp.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(disp, text="Display & Clock",
+                     font=ctk.CTkFont(size=14, weight="bold")).grid(
+            row=0, column=0, columnspan=2, padx=20, pady=(16, 2), sticky="w")
+        ctk.CTkLabel(disp, text="BitsyMiner only — settings baked into NVS at flash time",
+                     font=ctk.CTkFont(size=11), text_color=_MUTED).grid(
+            row=1, column=0, columnspan=2, padx=20, pady=(0, 10), sticky="w")
+
+        # Screen brightness
+        ctk.CTkLabel(disp, text="Brightness:", width=130, anchor="w").grid(
+            row=2, column=0, padx=(20, 8), pady=6, sticky="w")
+        ctk.CTkOptionMenu(
+            disp, variable=self._disp_vars["screen_brt"],
+            values=_BRIGHTNESS_OPTIONS,
+        ).grid(row=2, column=1, padx=(0, 20), pady=6, sticky="ew")
+
+        # Inactivity timer
+        ctk.CTkLabel(disp, text="Dim after:", width=130, anchor="w").grid(
+            row=3, column=0, padx=(20, 8), pady=6, sticky="w")
+        ctk.CTkOptionMenu(
+            disp, variable=self._disp_vars["inactiv_tmr"],
+            values=_DIM_TIMER_OPTIONS,
+        ).grid(row=3, column=1, padx=(0, 20), pady=6, sticky="ew")
+
+        # Inactivity brightness
+        ctk.CTkLabel(disp, text="Dim to:", width=130, anchor="w").grid(
+            row=4, column=0, padx=(20, 8), pady=6, sticky="w")
+        ctk.CTkOptionMenu(
+            disp, variable=self._disp_vars["inactiv_brt"],
+            values=_DIM_TO_OPTIONS,
+        ).grid(row=4, column=1, padx=(0, 20), pady=6, sticky="ew")
+
+        # 24-hour clock
+        ctk.CTkCheckBox(
+            disp, text="24-hour clock",
+            variable=self._disp_vars["clock24"],
+            font=ctk.CTkFont(size=12),
+        ).grid(row=5, column=0, columnspan=2, padx=20, pady=8, sticky="w")
+
+        # Timezone / UTC offset
+        ctk.CTkLabel(disp, text="Timezone:", width=130, anchor="w").grid(
+            row=6, column=0, padx=(20, 8), pady=6, sticky="w")
+        ctk.CTkOptionMenu(
+            disp, variable=self._disp_vars["utc_tz"],
+            values=_TIMEZONE_OPTIONS,
+            dynamic_resizing=False,
+        ).grid(row=6, column=1, padx=(0, 20), pady=(6, 16), sticky="ew")
+
         # ── Options card ──
         opt = ctk.CTkFrame(scroll, corner_radius=12)
-        opt.grid(row=3, column=0, padx=30, pady=(0, 20), sticky="ew")
+        opt.grid(row=4, column=0, padx=30, pady=(0, 20), sticky="ew")
 
         ctk.CTkLabel(opt, text="Options",
                      font=ctk.CTkFont(size=14, weight="bold")).grid(
@@ -1374,6 +1529,10 @@ class ESPFlasherApp(ctk.CTk, TkinterDnD.DnDWrapper):
         port = _ALL_POOLS.get(url)
         if port is not None:
             self._pool_vars["pool_port"].set(str(port))
+        # Update wallet label for XEC vs BTC pools
+        if hasattr(self, "_wallet_label"):
+            is_xec = url.strip().lower() in XEC_POOLS
+            self._wallet_label.configure(text="eCash Wallet:" if is_xec else "Bitcoin Wallet:")
         self._update_pool_warning(url)
 
     def _update_pool_warning(self, url: str = None):
@@ -1590,10 +1749,18 @@ class ESPFlasherApp(ctk.CTk, TkinterDnD.DnDWrapper):
             pool_pass = self._pool_vars["pool_pass"].get().strip() or "x"
 
             if fam == "SparkMiner":
+                brightness      = _SPARK_BRIGHTNESS_VALUES.get(self._disp_vars["screen_brt"].get(), 100)
+                tmr_ms          = _DIM_TIMER_MS.get(self._disp_vars["inactiv_tmr"].get())
+                screen_timeout_s = (tmr_ms // 1000) if tmr_ms else 0
+                tz_s            = _TIMEZONE_SECONDS.get(self._disp_vars["utc_tz"].get(), 0)
+                timezone_hours  = tz_s // 3600
                 return _spark.write_nvs_temp_file(
                     ssid=ssid, wifi_pass=wifi_pass,
                     pool_url=pool_url, pool_port=pool_port,
                     wallet=wallet, pool_pass=pool_pass,
+                    brightness=brightness,
+                    screen_timeout_s=screen_timeout_s,
+                    timezone_hours=timezone_hours,
                 )
             elif fam == "NMMiner":
                 return _nmminer.write_nvs_temp_file(
@@ -1603,10 +1770,21 @@ class ESPFlasherApp(ctk.CTk, TkinterDnD.DnDWrapper):
                     licence=self._nmminer_licence.get().strip(),
                 )
             else:  # BitsyMiner (default)
+                screen_brt     = _BRIGHTNESS_VALUES.get(self._disp_vars["screen_brt"].get())
+                inactiv_tmr_ms = _DIM_TIMER_MS.get(self._disp_vars["inactiv_tmr"].get())
+                inactiv_brt    = _DIM_TO_VALUES.get(self._disp_vars["inactiv_brt"].get())
+                clock24        = self._disp_vars["clock24"].get()
+                utc_offset_s   = _TIMEZONE_SECONDS.get(self._disp_vars["utc_tz"].get())
+
                 return _nvs.write_nvs_temp_file(
                     wifi_ssid=ssid, wifi_pass=wifi_pass,
                     pool_url=pool_url, pool_port=pool_port,
                     wallet=wallet, pool_pass=pool_pass,
+                    screen_brt=screen_brt,
+                    inactiv_tmr_ms=inactiv_tmr_ms,
+                    inactiv_brt=inactiv_brt,
+                    clock24=clock24,
+                    utc_offset_s=utc_offset_s,
                 )
         except Exception as exc:
             self._log(f"ERROR: Failed to generate NVS binary: {exc}")
@@ -1615,11 +1793,15 @@ class ESPFlasherApp(ctk.CTk, TkinterDnD.DnDWrapper):
     def _build_spiffs_binary(self) -> Optional[str]:
         """Generate NerdMiner SPIFFS image. Returns temp-file path or None."""
         try:
+            tz_s       = _TIMEZONE_SECONDS.get(self._disp_vars["utc_tz"].get(), 0)
+            brightness = _BRIGHTNESS_VALUES.get(self._disp_vars["screen_brt"].get(), 250)
             path = _spiffs.write_spiffs_temp_file(
-                pool_url  = self._pool_vars["pool_url"].get().strip(),
-                pool_port = self._pool_port_int(),
-                wallet    = self._cfg_vars["btc_wallet"].get().strip(),
-                pool_pass = self._pool_vars["pool_pass"].get().strip() or "x",
+                pool_url   = self._pool_vars["pool_url"].get().strip(),
+                pool_port  = self._pool_port_int(),
+                wallet     = self._cfg_vars["btc_wallet"].get().strip(),
+                pool_pass  = self._pool_vars["pool_pass"].get().strip() or "x",
+                gmt_zone   = tz_s // 3600,
+                brightness = brightness,
             )
             return path
         except Exception as exc:

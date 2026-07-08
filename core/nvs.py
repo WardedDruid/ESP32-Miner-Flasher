@@ -29,6 +29,7 @@ VERSION2    = 0xFE
 # Entry type codes
 TYPE_U8        = 0x01
 TYPE_U16       = 0x02
+TYPE_U32       = 0x04
 TYPE_STR       = 0x21
 TYPE_BLOB_DATA = 0x42   # chunked blob data entry  (0x41 = old single-entry blob, NOT this)
 TYPE_BLOB_IDX  = 0x48   # blob index (finalizer)
@@ -166,6 +167,20 @@ class _NVSPage:
         struct.pack_into('<I', e, 4, self._entry_header_crc(e))
         self._place(bytes(e))
 
+    def write_u32(self, ns_index: int, key: str, value: int):
+        """Write a U32 (uint32) entry. Negative values are stored as two's complement."""
+        e = bytearray(b'\xff' * NVS_ENTRY_SIZE)
+        e[0] = ns_index
+        e[1] = TYPE_U32
+        e[2] = 1
+        e[3] = CHUNK_ANY
+        kb = key.encode('utf-8')[:15]
+        e[8:8 + len(kb)] = kb
+        e[8 + len(kb):24] = b'\x00' * (16 - len(kb))
+        struct.pack_into('<I', e, 24, value & 0xFFFFFFFF)
+        struct.pack_into('<I', e, 4, self._entry_header_crc(e))
+        self._place(bytes(e))
+
     def write_blob(self, ns_index: int, key: str, data: bytes):
         """Write arbitrary bytes as a BLOB_DATA + BLOB_IDX pair."""
         datalen  = len(data)
@@ -278,6 +293,11 @@ def generate_nvs_partition(
     pool_port: int,
     wallet: str,
     pool_pass: str = "x",
+    screen_brt: int = None,
+    inactiv_tmr_ms: int = None,
+    inactiv_brt: int = None,
+    clock24: bool = None,
+    utc_offset_s: int = None,
     partition_size: int = NVS_PART_SIZE,
 ) -> bytes:
     """
@@ -286,6 +306,13 @@ def generate_nvs_partition(
     Returns `partition_size` bytes ready to flash at NVS_PART_OFFSET (0x9000).
     Only writes fields that are non-empty / non-zero.
     The remaining pages are 0xFF (erased flash).
+
+    Display & clock params (all optional — omit to use firmware defaults):
+      screen_brt:     active brightness 0-255 (firmware default: 128)
+      inactiv_tmr_ms: inactivity timeout in milliseconds (0 = disabled)
+      inactiv_brt:    brightness after timeout 0-255 (0 = screen off)
+      clock24:        True = 24-hour clock, False = 12-hour
+      utc_offset_s:   UTC offset in seconds (e.g. -18000 for UTC-5)
     """
     page = _NVSPage(page_num=0)
     page.write_namespace(BITSY_NAMESPACE, 1)
@@ -307,6 +334,18 @@ def generate_nvs_partition(
     if pool_pass:
         page.write_string(1, "poolPass",     pool_pass)
 
+    # Display & clock settings
+    if screen_brt is not None:
+        page.write_u8 (1, "screenBrt",   screen_brt & 0xFF)
+    if inactiv_tmr_ms is not None:
+        page.write_u32(1, "inactivTmr",  inactiv_tmr_ms)
+    if inactiv_brt is not None:
+        page.write_u8 (1, "inactivBrt",  inactiv_brt & 0xFF)
+    if clock24 is not None:
+        page.write_u8 (1, "clock24",     1 if clock24 else 0)
+    if utc_offset_s is not None:
+        page.write_u32(1, "utcOffset",   utc_offset_s)
+
     page_data = page.to_bytes()
     padding   = b'\xff' * (partition_size - NVS_PAGE_SIZE)
     return page_data + padding
@@ -319,18 +358,28 @@ def write_nvs_temp_file(
     pool_port: int,
     wallet: str,
     pool_pass: str = "x",
+    screen_brt: int = None,
+    inactiv_tmr_ms: int = None,
+    inactiv_brt: int = None,
+    clock24: bool = None,
+    utc_offset_s: int = None,
 ) -> str:
     """
     Generate a BitsyMiner NVS partition binary and write it to a temp file.
     Returns the temp file path (caller is responsible for deleting it).
     """
     data = generate_nvs_partition(
-        wifi_ssid  = wifi_ssid,
-        wifi_pass  = wifi_pass,
-        pool_url   = pool_url,
-        pool_port  = pool_port,
-        wallet     = wallet,
-        pool_pass  = pool_pass,
+        wifi_ssid      = wifi_ssid,
+        wifi_pass      = wifi_pass,
+        pool_url       = pool_url,
+        pool_port      = pool_port,
+        wallet         = wallet,
+        pool_pass      = pool_pass,
+        screen_brt     = screen_brt,
+        inactiv_tmr_ms = inactiv_tmr_ms,
+        inactiv_brt    = inactiv_brt,
+        clock24        = clock24,
+        utc_offset_s   = utc_offset_s,
     )
     fd, path = tempfile.mkstemp(suffix="_nvs.bin", prefix="bitsy_")
     try:

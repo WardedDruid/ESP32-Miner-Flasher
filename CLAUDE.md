@@ -80,6 +80,7 @@ General (BitsyMiner / SparkMiner / Other):
 |---|---|---|
 | hmpool.io | 3337 | Confirmed working with BitsyMiner |
 | btc.hmpool.io | 3337 | HMPool Bitcoin-specific subdomain |
+| xec.hmpool.io | 3337 | HMPool eCash (XEC) pool — requires eCash wallet address, not BTC |
 | public-pool.io | 21496 | Open-source, widely compatible |
 | lotterypool.io | 3333 | Lottery-style small-miner pool |
 | pool.pyblock.xyz | 3333 | PyBlock community pool |
